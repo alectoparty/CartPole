@@ -2,10 +2,9 @@ import gym
 import pandas as pd
 import numpy as np
 from sklearn.neural_network import MLPRegressor
-from sklearn.tree import DecisionTreeClassifier
 import random
 
-env = gym.make("CartPole-v0")
+env = gym.make("CartPole-v1")
 observation = env.reset()
 game_memory = []
 accepted_scores = []
@@ -34,24 +33,26 @@ def random_games():
 			for element in observation_data:
 				element.append(score)
 				game_memory.append(element)
-	return len(accepted_scores)
+	return len(accepted_scores), game_memory
 
 
 def train_model(game_memory):
 	df = pd.DataFrame(game_memory, columns = ['ob0','ob1','ob2','ob3','action', 'score'])
 	if len(game_memory) > 20000:
-		df.sort_values('score')
-		df.tail(20000)
+		df = df.tail(20000).sort_values('score')
+		game_memory = dfc.values.tolist()
+
 	df1 = np.array(df.drop(['action','score'], axis = 1))
 	y = np.array(df['action'])
-	#dtc = DecisionTreeClassifier()
 	mlp = MLPRegressor(hidden_layer_sizes=(50,100, 200,100,50), verbose = False, max_iter=20000,tol=0.00001)#, n_iter_no_change = 1000, solver = 'adam')
 	mlp.fit(df1,y)
 
-	return mlp
+	
+
+	return mlp, game_memory
 
 
-def test_model(model, iterations, render, score_increaser):
+def test_model(model, iterations, render, score_increaser, game_memory):
 	observation = [0,0,0,0]
 	accepted_scores = []
 	for _ in range(iterations):
@@ -93,16 +94,16 @@ def test_model(model, iterations, render, score_increaser):
 	else: 
 		print('The were no accepted scores that met the threshold of {}'.format(required_score))
 	print('The average score was {}'.format(np.array(score_keeper).mean()))
-	return len(accepted_scores)
+	return len(accepted_scores), game_memory
 
 def train(epochs, iterations):
-	old_num_good_scores = random_games()
+	old_num_good_scores, game_memory = random_games()
 	print('game memory length is {}'.format(len(game_memory)))
 	i = 1
 	for _ in range(epochs):
 		score_increaser = 0
-		model = train_model(game_memory)
-		num_good_scores = test_model(model, iterations, False, score_increaser)
+		model, game_memory = train_model(game_memory)
+		num_good_scores, game_memory = test_model(model, iterations, False, score_increaser, game_memory)
 
 		print('finished the {}ith epoch'.format(i))
 
@@ -111,7 +112,10 @@ def train(epochs, iterations):
 		if num_good_scores/iterations == 0.0:
 			break
 		i += 1
-	test_model(model, 50, True, 15)
+	test_model(model, 50, True, 15, game_memory)
 
 
 train(epochs=10 ,iterations=100)
+
+
+
