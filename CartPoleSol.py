@@ -40,7 +40,7 @@ def train_model(game_memory):
 	df = pd.DataFrame(game_memory, columns = ['ob0','ob1','ob2','ob3','action', 'score'])
 	if len(game_memory) > 20000:
 		df = df.tail(20000).sort_values('score')
-		game_memory = dfc.values.tolist()
+		game_memory = df.values.tolist()
 
 	df1 = np.array(df.drop(['action','score'], axis = 1))
 	y = np.array(df['action'])
